@@ -1,6 +1,7 @@
 package crawler
 
 import (
+	"MedSearch/app/database/repository"
 	"MedSearch/app/models"
 	"fmt"
 	"strings"
@@ -49,16 +50,75 @@ func (c *Crawler) Start() {
 			case "Xuất xứ thương hiệu":
 				drug.MAH = value
 			case "Mô tả ngắn":
-				drug.Uses = value
+				drug.Description = value
 			case "Lưu ý":
 				drug.Notes = value
 			}
 		})
-		fmt.Println(drug)
+		drug.Price = e.DOM.Find(`span[data-test='price']`).First().Text()
+		fmt.Println("Price:", drug.Price)
+
+		e.DOM.Find("div.usage").Each(func(i int, s *goquery.Selection) {
+			s.Find("h3").Each(func(_ int, h3 *goquery.Selection) {
+				if strings.Contains(h3.Text(), "Chỉ định") {
+					h3.NextUntil("h3").Each(func(_ int, p *goquery.Selection) {
+						drug.Uses += p.Text()
+					})
+				}
+			})
+		})
+
+		if drug.Uses == "" {
+			e.DOM.Find(`div.usage`).Each(func(i int, s *goquery.Selection) {
+				s.Find("h3").Each(func(_ int, h3 *goquery.Selection) {
+					if h3.Text() == "Chỉ định" {
+						// Tìm thẻ <ul> ngay sau h3
+						ul := h3.NextFiltered("p").NextFiltered("ul")
+						ul.Find("li").Each(func(_ int, li *goquery.Selection) {
+							drug.Uses += li.Text() + "\n"
+						})
+					}
+				})
+			})
+		}
+
+		e.DOM.Find("div.dosage").Each(func(i int, s *goquery.Selection) {
+			s.Find("h3").Each(func(_ int, h3 *goquery.Selection) {
+				if strings.Contains(h3.Text(), "Cách dùng") {
+					h3.NextUntil("h3").Each(func(_ int, p *goquery.Selection) {
+						drug.Administration += p.Text()
+					})
+				}
+				if strings.Contains(h3.Text(), "Liều dùng") {
+					h3.NextUntil("h3").Each(func(_ int, p *goquery.Selection) {
+						drug.Dosage += p.Text()
+					})
+				}
+			})
+		})
+
+		e.DOM.Find("div.adverseEffect").Each(func(i int, s *goquery.Selection) {
+			s.Find("p").Each(func(_ int, p *goquery.Selection) {
+				drug.SideEffects += p.Text()
+			})
+		})
+
+		e.DOM.Find("div.preservation").Each(func(i int, s *goquery.Selection) {
+			s.Find("p").Each(func(_ int, p *goquery.Selection) {
+				drug.Storage += p.Text()
+			})
+		})
+
+		err := repository.InsertDrug(&drug)
+		if err != nil {
+			fmt.Println("Failed to insert drug:", err)
+		} else {
+			fmt.Println("Inserted drug:", drug.Name)
+		}
 	})
 
 	//TODO: Visit(url)
-	url := "https://nhathuoclongchau.com.vn/thuoc/nolvadex-d-15679.html"
+	url := "https://nhathuoclongchau.com.vn/thuoc/exopadin-60-mg-truong-tho-3-x10.html"
 	collector.Visit(url)
 	collector.Wait()
 }

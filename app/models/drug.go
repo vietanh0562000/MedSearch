@@ -6,7 +6,7 @@ type Drug struct {
 	ID               primitive.ObjectID `bson:"_id,omitempty"`
 	Name             string             `bson:"name"`
 	Slug             string             `bson:"slug"`
-	Type             string             `bson:"type"`
+	Description      string             `bson:"description"`
 	Category         string             `bson:"category"`
 	RegistedNumber   string             `bson:"registed_number"`
 	Ingredients      []string           `bson:"ingredients"`
@@ -19,14 +19,14 @@ type Drug struct {
 	SideEffects      string             `bson:"side_effects"`
 	DrugInteractions string             `bson:"drug_interactions,omitempty"`
 	Manufacturer     string             `bson:"manufacturer"`
-	MAH              string             `bson:"mah_ky,omitempty"`
+	MAH              string             `bson:"mah,omitempty"`
 	DosageForm       string             `bson:"dosage_form"`
 	Packaging        string             `bson:"packaging,omitempty"`
 	Storage          string             `bson:"storage"`
 	Notes            string             `bson:"notes"`
-	QuaLieu          string             `bson:"qua_lieu,omitempty"`
-	Price            int                `bson:"gia,omitempty"`
-	Image            string             `bson:"hinh_anh,omitempty"`
+	Overdose         string             `bson:"overdose,omitempty"`
+	Price            string             `bson:"price,omitempty"`
+	Image            string             `bson:"image,omitempty"`
 	Retailer         string             `bson:"retailer"`
 	UpdateDate       primitive.DateTime `bson:"update_date"`
 }
