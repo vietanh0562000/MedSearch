@@ -1,6 +1,7 @@
 package app
 
 import (
+	"MedSearch/app/config"
 	"MedSearch/app/crawler"
 	"MedSearch/app/database"
 )
@@ -8,6 +9,10 @@ import (
 func Start() {
 	database.Connect("mongodb://localhost:27017", "medsearch")
 
-	crawler := crawler.Crawler{}
+	config := config.Config{
+		BaseURL:  "https://nhathuoclongchau.com.vn",
+		StartURL: "https://nhathuoclongchau.com.vn/thuoc",
+	}
+	crawler := crawler.NewCrawler(&config)
 	crawler.Start()
 }
