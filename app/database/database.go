@@ -1,7 +1,6 @@
 package database
 
 import (
-	"MedSearch/app/database/repository"
 	"context"
 	"log"
 	"time"
@@ -29,11 +28,6 @@ func Connect(uri string, dbName string) {
 	}
 
 	DB = client.Database(dbName)
-
-	err = repository.CreateDrugTextIndex()
-	if err != nil {
-		log.Fatal(err.Error())
-	}
 
 	log.Println("✅ Connected to MongoDB!")
 }

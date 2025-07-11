@@ -3,6 +3,7 @@ package crawler
 import (
 	"MedSearch/app/config"
 	"MedSearch/app/database/repository"
+	"MedSearch/app/logger"
 	"log"
 	"strings"
 	"time"
@@ -12,59 +13,65 @@ import (
 )
 
 type Crawler struct {
-	config config.Config
+	config *config.Config
+	logger *logger.MLogger
 }
 
-func NewCrawler(config *config.Config) *Crawler {
+func NewCrawler(config *config.Config, logger *logger.MLogger) *Crawler {
 	newCrawler := Crawler{
-		config: *config,
+		config: config,
+		logger: logger,
 	}
 
 	return &newCrawler
 }
 
 func (c *Crawler) Start() {
-	log.Println("🚀 Starting crawler...")
+	c.logger.Log("🚀 Starting crawler...")
 
 	//TODO: Create collector by colly
 	collector := colly.NewCollector(
-		colly.MaxDepth(3), // Increased depth
+		colly.MaxDepth(10), // Increased depth
 	)
+
+	collector.SetRequestTimeout(30 * time.Second)
 
 	collector.Limit(&colly.LimitRule{
 		DomainGlob:  "*",
-		Parallelism: 2,
+		Parallelism: 4,
 		Delay:       1 * time.Second, // Reduced delay
 		RandomDelay: 1 * time.Second,
 	})
 
 	// Add error handling
 	collector.OnError(func(r *colly.Response, err error) {
-		log.Printf("❌ Error visiting %s: %v", r.Request.URL, err)
+		c.logger.Log("❌ Error visiting %s: %v", r.Request.URL, err)
 	})
 
 	//TODO: Set rate limit for collector: OnRequest, OnResponse. OnHTML, OnError
 	// Get Info in OnHTML function
 	collector.OnRequest(func(r *colly.Request) {
-		log.Printf("🌐 Visiting: %s", r.URL.String())
+		c.logger.Log("🌐 Visiting: %s", r.URL.String())
 	})
 
 	//TODO: Set callback for collector
 	collector.OnHTML("body", func(e *colly.HTMLElement) {
 		url := e.Request.URL.String()
-		log.Printf("📄 Processing: %s", url)
+		c.logger.Log("📄 Processing: %s", url)
 
 		if strings.Contains(url, "/thuoc/") && strings.Contains(url, ".html") {
-			log.Printf("💊 Found drug page: %s", url)
+			c.logger.Log("💊 Found drug page: %s", url)
 			drug := ParseDrug(e)
+			start := time.Now()
 			err := repository.InsertDrug(&drug)
+			elapsed := time.Since(start)
 			if err != nil {
-				log.Printf("❌ Failed to insert drug: %v", err)
+				c.logger.Log("❌ Failed to insert drug: %v (took %v)", err, elapsed)
 			} else {
-				log.Printf("✅ Successfully inserted drug: %s", drug.Name)
+				c.logger.Log("✅ Successfully inserted drug: %s (took %v)", drug.Name, elapsed)
 			}
 		} else {
-			log.Printf("🔗 Looking for links on: %s", url)
+			c.logger.Log("🔗 Looking for links on: %s", url)
 			linkCount := 0
 			e.DOM.Find("a[href]").Each(func(i int, s *goquery.Selection) {
 				href, exists := s.Attr("href")
@@ -79,19 +86,19 @@ func (c *Crawler) Start() {
 					}
 
 					// Improved URL filtering - check if it's a drug page
-					if strings.Contains(href, "/thuoc/") && !strings.Contains(href, "#") {
-						log.Printf("🔗 Found drug link: %s", href)
+					if strings.Contains(href, "/thuoc/") {
+						c.logger.Log("🔗 Found drug link: %s", href)
 						linkCount++
 						e.Request.Visit(href)
 					}
 				}
 			})
-			log.Printf("📊 Found %d drug links on %s", linkCount, url)
+			c.logger.Log("📊 Found %d drug links on %s", linkCount, url)
 		}
 	})
 
-	log.Printf("🎯 Starting crawl from: %s", c.config.BaseURL)
-	collector.Visit(c.config.BaseURL)
+	c.logger.Log("🎯 Starting crawl from: %s", c.config.StartURL)
+	collector.Visit(c.config.StartURL)
 	collector.Wait()
 	log.Println("🏁 Crawler finished!")
 }
