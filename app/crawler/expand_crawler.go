@@ -8,18 +8,19 @@ import (
 	"net/http"
 )
 
-func CrawlExpand() {
+func GetDrugLink(category string, skipCount int) []string {
+	fmt.Println(category)
 	url := "https://api.nhathuoclongchau.com.vn/lccus/search-product-service/api/products/ecom/product/search/cate"
 
 	payload := map[string]interface{}{
-		"skipCount":      12,
-		"maxResultCount": 8,
+		"skipCount":      skipCount,
+		"maxResultCount": 100,
 		"codes": []string{
 			"productTypes", "priceRanges", "prescription", "objectUse", "skin", "flavor",
 			"manufactor", "indications", "brand", "brandOrigin", "producer", "specification", "ingredient",
 		},
 		"sortType": 4,
-		"category": []string{"thuoc/thuoc-di-ung"},
+		"category": []string{category},
 	}
 
 	body, _ := json.Marshal(payload)
@@ -35,5 +36,32 @@ func CrawlExpand() {
 	defer resp.Body.Close()
 
 	data, _ := io.ReadAll(resp.Body)
-	fmt.Println(string(data))
+
+	var slugs []string
+
+	// Parse the response as JSON
+	var jsonData map[string]interface{}
+	if err := json.Unmarshal(data, &jsonData); err != nil {
+		fmt.Printf("Error parsing JSON: %v\n", err)
+		fmt.Println("Raw response:", string(data))
+		return slugs
+	}
+
+	// Extract slugs from product array
+
+	if products, exists := jsonData["products"]; exists {
+		if productArray, ok := products.([]interface{}); ok {
+			for _, product := range productArray {
+				if productMap, ok := product.(map[string]interface{}); ok {
+					if slug, exists := productMap["slug"]; exists {
+						if slugStr, ok := slug.(string); ok {
+							slugs = append(slugs, slugStr)
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return slugs
 }

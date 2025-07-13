@@ -7,6 +7,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 func InsertDrug(drug *models.Drug) error {
@@ -23,6 +24,7 @@ func CreateDrugTextIndex() error {
 			{Key: "ingredients", Value: "text"},
 			{Key: "uses", Value: "text"},
 		},
+		Options: options.Index().SetName("fulltext").SetUnique(true),
 	}
 	_, err := collection.Indexes().CreateOne(context.Background(), indexModel)
 	return err

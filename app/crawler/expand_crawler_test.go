@@ -3,5 +3,5 @@ package crawler
 import "testing"
 
 func TestExpandCrawler(t *testing.T) {
-	CrawlExpand()
+	GetDrugLink("thuoc/thuoc-di-ung", 0)
 }
