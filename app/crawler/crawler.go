@@ -2,6 +2,7 @@ package crawler
 
 import (
 	"MedSearch/app/config"
+	"MedSearch/app/database"
 	"MedSearch/app/database/repository"
 	"MedSearch/app/logger"
 	"log"
@@ -13,15 +14,18 @@ import (
 )
 
 type Crawler struct {
-	config *config.Config
+	config *config.CrawlerConfig
 	logger *logger.MLogger
 }
 
-func NewCrawler(config *config.Config, logger *logger.MLogger) *Crawler {
+func NewCrawler(config *config.CrawlerConfig, logger *logger.MLogger) *Crawler {
 	newCrawler := Crawler{
 		config: config,
 		logger: logger,
 	}
+
+	database.Connect(config.GetDbURI(), config.GetDbName())
+	repository.CreateDrugTextIndex()
 
 	return &newCrawler
 }
@@ -78,11 +82,11 @@ func (c *Crawler) Start() {
 				if exists {
 					// Convert relative URLs to absolute URLs
 					if strings.HasPrefix(href, "/") {
-						href = c.config.BaseURL + href
+						href = c.config.GetBaseURL() + href
 					} else if strings.HasPrefix(href, "./") {
-						href = c.config.BaseURL + href[1:]
+						href = c.config.GetBaseURL() + href[1:]
 					} else if !strings.HasPrefix(href, "http") {
-						href = c.config.BaseURL + "/" + href
+						href = c.config.GetBaseURL() + "/" + href
 					}
 
 					// Improved URL filtering - check if it's a drug page
@@ -97,8 +101,8 @@ func (c *Crawler) Start() {
 		}
 	})
 
-	c.logger.Log("🎯 Starting crawl from: %s", c.config.StartURL)
-	collector.Visit(c.config.StartURL)
+	c.logger.Log("🎯 Starting crawl from: %s", c.config.GetStartURL())
+	collector.Visit(c.config.GetStartURL())
 	collector.Wait()
 	log.Println("🏁 Crawler finished!")
 }
