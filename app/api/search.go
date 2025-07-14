@@ -5,14 +5,15 @@ import (
 	"MedSearch/app/models"
 	"context"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 func Search(c *gin.Context) {
-	searchStr := c.Query("search")
+	searchStr := c.Query("text")
+	searchStr = refineFullTextQuery(searchStr)
 
 	filter := bson.M{
 		"$text": bson.M{
@@ -20,9 +21,8 @@ func Search(c *gin.Context) {
 		},
 	}
 
-	opts := options.Find().SetLimit(int64(10)).SetSkip(int64((1 - 1) * 10))
 	collection := database.DB.Collection("drugs")
-	cursor, err := collection.Find(context.Background(), filter, opts)
+	cursor, err := collection.Find(context.Background(), filter)
 
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -39,4 +39,15 @@ func Search(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, drugs)
+}
+
+func refineFullTextQuery(query string) string {
+	words := strings.Fields(query)
+	var newQuery strings.Builder
+	for _, word := range words {
+		newQuery.WriteString("+")
+		newQuery.WriteString(word)
+	}
+
+	return newQuery.String()
 }
