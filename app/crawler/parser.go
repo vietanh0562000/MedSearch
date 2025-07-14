@@ -11,6 +11,8 @@ import (
 func ParseDrug(e *colly.HTMLElement) models.Drug {
 	var drug models.Drug
 
+	drug.Link = e.Request.URL.String()
+
 	parseGeneralInfo(e, &drug)
 	parseSideEffects(e, &drug)
 	parseStorage(e, &drug)

@@ -6,10 +6,11 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 )
 
 func GetDrugLink(category string, skipCount int) []string {
-	fmt.Println(category)
+	fmt.Println("Category", category)
 	url := "https://api.nhathuoclongchau.com.vn/lccus/search-product-service/api/products/ecom/product/search/cate"
 
 	payload := map[string]interface{}{
@@ -54,7 +55,7 @@ func GetDrugLink(category string, skipCount int) []string {
 			for _, product := range productArray {
 				if productMap, ok := product.(map[string]interface{}); ok {
 					if slug, exists := productMap["slug"]; exists {
-						if slugStr, ok := slug.(string); ok {
+						if slugStr, ok := slug.(string); ok && strings.Contains(slugStr, ".html") {
 							slugs = append(slugs, slugStr)
 						}
 					}

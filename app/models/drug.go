@@ -28,5 +28,6 @@ type Drug struct {
 	Price            string             `bson:"price,omitempty"`
 	Image            string             `bson:"image,omitempty"`
 	Retailer         string             `bson:"retailer"`
+	Link             string             `bson:"link"`
 	UpdateDate       primitive.DateTime `bson:"update_date"`
 }
