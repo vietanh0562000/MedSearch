@@ -8,13 +8,13 @@ import (
 	"os"
 	"time"
 
-	"github.com/olivere/elastic/v7"
+	"github.com/elastic/go-elasticsearch/v8"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 var DB *mongo.Database
-var ElasticClient *elastic.Client
+var ElasticClient *elasticsearch.Client
 var Logger *logger.MLogger
 
 //var ElasticClient
@@ -47,31 +47,32 @@ func Connect(uri string, dbName string) {
 	if err != nil {
 		Logger.Log("%s", err.Error())
 	}
+
+	time.Sleep(5 * time.Second)
+
+	MigrateToElastic()
 }
 
-func ConnectElasticsearch() (*elastic.Client, error) {
+func ConnectElasticsearch() (*elasticsearch.Client, error) {
 	esURL := os.Getenv("ELASTICSEARCH_URL")
 	if esURL == "" {
 		esURL = "http://localhost:9200"
 	}
 
-	var client *elastic.Client
+	var client *elasticsearch.Client
 	var err error
 	maxAttempts := 10
 	for i := 1; i <= maxAttempts; i++ {
-		client, err = elastic.NewClient(
-			elastic.SetURL(esURL),
-			elastic.SetSniff(false),
-		)
-		if err == nil {
-			// Try ping
-			_, _, err = client.Ping(esURL).Do(context.Background())
-			if err == nil {
-				break
-			}
+		// --- Kết nối tới Elasticsearch ---
+		client, err = elasticsearch.NewDefaultClient()
+		if err != nil {
+			Logger.Log("Elasticsearch not ready (attempt %d/%d): %v", i, maxAttempts, err)
+			time.Sleep(5 * time.Second)
+
+		} else {
+			break
 		}
-		Logger.Log("Elasticsearch not ready (attempt %d/%d): %v", i, maxAttempts, err)
-		time.Sleep(5 * time.Second)
+
 	}
 	if err != nil {
 		return nil, fmt.Errorf("error creating Elasticsearch client after retries: %w", err)

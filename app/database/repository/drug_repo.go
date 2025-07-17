@@ -3,12 +3,11 @@ package repository
 import (
 	"MedSearch/app/database"
 	"MedSearch/app/models"
+	"bytes"
 	"context"
 	"encoding/json"
-	"fmt"
 	"strings"
 
-	"github.com/olivere/elastic/v7"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 )
@@ -32,35 +31,51 @@ func CreateDrugTextIndex() error {
 	return err
 }
 
+// Define a struct for the hits:
+type Hit struct {
+	Source models.Drug `json:"_source"`
+}
+type SearchHits struct {
+	Hits struct {
+		Hits []Hit `json:"hits"`
+	} `json:"hits"`
+}
+
 func SearchDrug(term string) ([]models.Drug, error) {
-	searchStr := refineFullTextQuery(term)
+	// Build the query as a JSON string
+	query := `{
+	"query": {
+		"match": {
+		"name": {
+			"query": "` + term + `",
+			"fuzziness": "AUTO"
+		}
+		}
+	}
+	}`
 
-	query := elastic.NewMatchQuery("name", searchStr).Fuzziness("AUTO")
-
-	searchResult, err := database.ElasticClient.Search().
-		Index("drugs").
-		Query(query).
-		Do(context.Background())
-
+	// Perform the search
+	res, err := database.ElasticClient.Search(
+		database.ElasticClient.Search.WithContext(context.Background()),
+		database.ElasticClient.Search.WithIndex("drugs"),
+		database.ElasticClient.Search.WithBody(bytes.NewReader([]byte(query))),
+		database.ElasticClient.Search.WithTrackTotalHits(true),
+		database.ElasticClient.Search.WithPretty(),
+	)
 	if err != nil {
 		return nil, err
 	}
-
-	// Duyệt qua từng kết quả
-	var drugs []models.Drug
-	for _, hit := range searchResult.Hits.Hits {
-		var d models.Drug
-		err := json.Unmarshal(hit.Source, &d)
-		if err != nil {
-			fmt.Printf("Lỗi parse: %v\n", err)
-			continue
-		}
-
-		// Lấy ID từ Elasticsearch (nếu không nằm trong source)
-
-		drugs = append(drugs, d)
+	defer res.Body.Close()
+	// Then unmarshal:
+	var sh SearchHits
+	if err := json.NewDecoder(res.Body).Decode(&sh); err != nil {
+		return nil, err
 	}
 
+	var drugs []models.Drug
+	for _, hit := range sh.Hits.Hits {
+		drugs = append(drugs, hit.Source)
+	}
 	return drugs, nil
 }
 

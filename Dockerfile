@@ -27,5 +27,7 @@ COPY --from=builder /app/medsearch .
 # Expose the port your API runs on (default 8080)
 EXPOSE 8080
 
+ENTRYPOINT ["./medsearch"]
+
 # Default command (can be overridden)
 CMD ["./medsearch", "api"]
