@@ -50,7 +50,7 @@ func Connect(uri string, dbName string) {
 
 	time.Sleep(5 * time.Second)
 
-	MigrateToElastic()
+	//MigrateToElastic()
 }
 
 func ConnectElasticsearch() (*elasticsearch.Client, error) {

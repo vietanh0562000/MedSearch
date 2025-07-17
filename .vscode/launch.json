@@ -12,7 +12,7 @@
             "mode": "auto",
             "program": "${workspaceFolder}",
             "env": {},
-            "args": []
+            "args": ["api"]
         },
         {
             "name": "Attach to Process",

@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
 
 	"github.com/elastic/go-elasticsearch/v8"
@@ -35,6 +36,7 @@ func MigrateToElastic() {
 			Name: drug.Name,
 		}
 
+		fmt.Println("ID Doc: ", drug.ID)
 		// Ghi ngay lập tức document này vào Elasticsearch
 		err := indexSingleDoc(ElasticClient, drug.ID.Hex(), drugLite)
 		if err != nil {
