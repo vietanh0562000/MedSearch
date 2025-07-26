@@ -8,6 +8,8 @@ import (
 	"MedSearch/app/routes"
 	"fmt"
 
+	"github.com/gin-contrib/cors"
+
 	"github.com/gin-gonic/gin"
 )
 
@@ -16,6 +18,10 @@ func Start(config *config.AppConfig, logger *logger.MLogger) {
 	repository.CreateDrugTextIndex()
 
 	router := gin.Default()
+
+	// Add CORS middleware with simpler configuration
+	router.Use(cors.Default())
+
 	routes.Setup(router)
 
 	address := fmt.Sprintf(":%s", config.GetPort())

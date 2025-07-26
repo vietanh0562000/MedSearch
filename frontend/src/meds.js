@@ -5,3 +5,7 @@ export const meds = [
   { name: "Amoxicillin", description: "Antibiotic for bacterial infections." },
   // Add more meds as needed
 ]; 
+
+function SearchMed(info){
+  
+}
